@@ -788,6 +788,7 @@ function abrirPecas(){
   window.scrollTo({top:0});
 }
 function abrir(id){
+  try{ const st=SETORES.find(x=>x.id===id); evento('setor-'+id,'Abriu o setor: '+(st?st.nome:id)); }catch(e){}
   if(id==='pecas') return abrirPecas();
   $('pecasView').hidden=true;
   SET=SETORES.find(s=>s.id===id); S=loadMeu()||demoDe(SET);
@@ -1064,12 +1065,25 @@ $('sobMedidaHome').innerHTML=cartaoSobMedida('');
   const rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
   setTimeout(fim, rm?700:2300); sp.addEventListener('click',fim); })();
 
+// ===== contador de pessoas (GoatCounter) =====
+// Coloque aqui o código da sua conta no goatcounter.com (ex.: 'quantosobra'). Vazio = contador desligado.
+const CONTADOR='';
+const evQ=[];
+function flushEv(){ if(!(window.goatcounter&&typeof window.goatcounter.count==='function')) return; while(evQ.length){ const [n,t]=evQ.shift(); try{ window.goatcounter.count({path:n,title:t,event:true}); }catch(e){} } }
+function evento(nome,titulo){ if(!CONTADOR) return; evQ.push([nome,titulo]); flushEv(); }
+if(CONTADOR){ try{ const sc=document.createElement('script'); sc.async=true; sc.src='https://gc.zgo.at/count.js'; sc.setAttribute('data-goatcounter',`https://${CONTADOR}.goatcounter.com/count`); sc.onload=()=>{ setTimeout(flushEv,400); setTimeout(flushEv,2000); }; document.head.appendChild(sc); }catch(e){} }
+try{ if(!localStorage.getItem('dayia-qs-inicio')) evento('pessoa-nova','Pessoa nova abriu o app'); }catch(e){}
+function marcaInstalado(){ try{ if(localStorage.getItem('dayia-qs-inst')) return; localStorage.setItem('dayia-qs-inst','1'); }catch(e){} evento('app-instalado','App instalado na tela inicial'); }
+try{ if(matchMedia('(display-mode: standalone)').matches||navigator.standalone) marcaInstalado(); }catch(e){}
+addEventListener('appinstalled',marcaInstalado);
+document.addEventListener('click',e=>{ const a=e.target.closest('#planos a.btn'); if(a) evento('clicou-assinar','Clicou para assinar: '+a.textContent.trim()); });
+
 // ===== teste grátis e assinatura =====
 // Ajuste aqui: preços, dias de teste e os links de pagamento do Mercado Pago.
 const DIAS_TESTE=30;
 const PRECO_MENSAL=19.90, PRECO_ANUAL=199.00, PRECO_PROMO=9.90;
-const LINK_MENSAL='';   // link do plano de assinatura mensal (Mercado Pago)
-const LINK_ANUAL='';    // link de pagamento do plano anual (Mercado Pago)
+const LINK_MENSAL='https://mpago.la/2zZtjJs';   // link do plano de assinatura mensal (Mercado Pago)
+const LINK_ANUAL='https://mpago.la/1LNaMNF';    // link de pagamento do plano anual (Mercado Pago)
 const LINK_PROMO='';    // link do 1º mês com desconto (Mercado Pago)
 const SEGREDO_COD='5843b1d04db4522f998f5220'; // tem que ser igual ao do gerador de códigos
 const KL='dayia-qs-lic', KI='dayia-qs-inicio', BASE_COD=Date.UTC(2026,0,1);
@@ -1093,7 +1107,7 @@ function situacao(){
   const usados=dias(deIso(ini),h), r=DIAS_TESTE-usados;
   if(r>0) return {t:'teste',d:r}; return {t:'fim',depois:-r};
 }
-function promoValida(st){ return (st.t==='teste'&&st.d<=1)||(st.t==='fim'&&st.depois<=2); }
+function promoValida(st){ return !!LINK_PROMO&&((st.t==='teste'&&st.d<=1)||(st.t==='fim'&&st.depois<=2)); }
 function botaoPag(link,txt,cls){
   if(link) return `<a class="btn ${cls||''}" href="${link}" target="_blank" rel="noopener">${txt}</a>`;
   return `<button class="btn ${cls||''}" data-semlink="1">${txt}</button>`;
@@ -1103,7 +1117,7 @@ function renderPlanoBar(){
   let h='';
   if(st.t==='teste'&&st.d>5) h=`<p>🎁 Teste grátis: faltam <b>${st.d} dias</b>.</p><button class="lk" data-planos="1">Ver planos</button>`;
   else if(st.t==='teste'&&st.d>1){ b.className='alerta'; h=`<p>⏳ Seu teste grátis acaba em <b>${st.d} dias</b>. Assine para continuar usando.</p><button class="btn small" data-planos="1">Assinar</button>`; }
-  else if(st.t==='teste'){ b.className='alerta'; h=`<p>⏳ <b>Último dia de teste!</b> Assine hoje e o 1º mês sai por ${brl(PRECO_PROMO)}.</p><button class="btn small" data-planos="1">Assinar</button>`; }
+  else if(st.t==='teste'){ b.className='alerta'; h=`<p>⏳ <b>Último dia de teste!</b> ${LINK_PROMO?`Assine hoje e o 1º mês sai por ${brl(PRECO_PROMO)}.`:'Assine para continuar usando.'}</p><button class="btn small" data-planos="1">Assinar</button>`; }
   else if(st.t==='pago'&&st.d<=5){ b.className='alerta'; h=`<p>Sua assinatura vence ${st.d===0?'hoje':`em <b>${st.d} dia${st.d>1?'s':''}</b>`} (${dataBR(st.ate)}). Renove para continuar.</p><button class="btn small" data-planos="1">Renovar</button>`; }
   b.hidden=!h; b.innerHTML=h?`<div class="wrap">${h}</div>`:'';
 }
@@ -1111,7 +1125,7 @@ function abrirPlanos(bloq){
   const st=situacao(), el=$('planos');
   const tit=bloq?(st.t==='vencido'?'Sua assinatura venceu':'Seu teste grátis acabou'):'Planos do Quanto Sobra';
   const sub=bloq?'Seus números continuam guardados neste aparelho. Assine para voltar a usar.':(st.t==='teste'?`Você ainda tem ${st.d} dia${st.d>1?'s':''} de teste grátis.`:st.t==='pago'?`Sua assinatura vale até ${dataBR(st.ate)}.`:'');
-  const promo=promoValida(st)?`<div class="promo">Oferta de ${st.t==='teste'?'hoje':'volta'}: <b class="big">1º mês por ${brl(PRECO_PROMO)}</b>Depois, ${brl(PRECO_MENSAL)} por mês. Cancele quando quiser.<div style="margin-top:12px">${botaoPag(LINK_PROMO||LINK_MENSAL,'Quero a oferta')}</div></div>`:'';
+  const promo=promoValida(st)?`<div class="promo">Oferta de ${st.t==='teste'?'hoje':'volta'}: <b class="big">1º mês por ${brl(PRECO_PROMO)}</b>Depois, ${brl(PRECO_MENSAL)} por mês. Cancele quando quiser.<div style="margin-top:12px">${botaoPag(LINK_PROMO,'Quero a oferta')}</div></div>`:'';
   el.innerHTML=`<div class="pl">
     ${bloq?'':'<button class="pl-x" aria-label="Fechar" data-planosx="1">×</button>'}
     <h2 id="plTit">${tit}</h2><p class="pl-sub">${sub}</p>
@@ -1144,7 +1158,7 @@ document.addEventListener('click',e=>{
     if(!ate){ r.className='res no'; r.textContent='Código inválido. Confira e digite de novo.'; return; }
     if(dias(hoje0(),ate)<0){ r.className='res no'; r.textContent=`Este código venceu em ${dataBR(ate)}. Peça um novo à DayIA.`; return; }
     try{ localStorage.setItem(KL,JSON.stringify({ate:iso(ate)})); }catch(err){}
-    r.className='res ok'; r.textContent=`✓ Ativado! Sua assinatura vale até ${dataBR(ate)}.`;
+    r.className='res ok'; r.textContent=`✓ Ativado! Sua assinatura vale até ${dataBR(ate)}.`; evento('assinatura-ativada','Assinatura ativada');
     renderPlanoBar(); setTimeout(()=>{ fecharPlanos(); checarAcesso(); },1600);
   }
 });
