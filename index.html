@@ -915,13 +915,13 @@ function textoCliente(o,a){
   const contato=(o.contato||'').trim(), sau=o.sau!==0, eu=(S.seuNome||'').trim();
   let t='';
   if(email) t+=`Assunto: Orçamento${casa?' – '+casa:''}${o.cliente?' para '+o.cliente:''}\n\n`;
-  if(sau) t+= email ? `${oi}${contato?', '+contato:''},\n\nSegue o orçamento solicitado:\n\n` : `${oi}${contato?', '+contato:''}, tudo bem?\nSegue o orçamento${casa?' da '+casa:''}:\n\n`;
+  if(sau) t+= email ? `${oi}${contato?', '+contato:''},\n\nSegue o orçamento solicitado:\n\n` : `${oi}${contato?', '+contato:''}, tudo bem?\nSegue o seu orçamento:\n\n`;
   else t+=`Orçamento${casa?' – '+casa:''}${o.cliente?'\nCliente: '+o.cliente:''}\n\n`;
   a.L.forEach(l=>{ if(l.q) t+=`• ${String(l.q).replace('.',',')} × ${l.n} – ${brl(l.p*(1-a.d))} cada = ${brl(l.q*l.p*(1-a.d))}\n`; });
   if(a.d>0) t+=`\nDesconto de ${pc(a.d)} já aplicado nos preços.`;
   const fn=fNome(); t+=`\n${fn.charAt(0).toUpperCase()+fn.slice(1)}: ${o.fm==='eu'?'grátis':(a.Fc?brl(a.Fc)+' por conta do cliente':'por conta do cliente')}`;
   t+=`\n\n*Total: ${brl(a.total)}*`.replace(/\*/g,email?'':'*');
-  if(sau) t+= email ? `\n\nFico à disposição para qualquer dúvida.\n\nAtenciosamente,${eu?'\n'+eu:''}${casa?'\n'+casa:''}` : `\n\nQualquer dúvida, estou à disposição. Tenha ${tchau}!${eu?'\n'+eu:''}`;
+  if(sau) t+= email ? `\n\nFico à disposição para qualquer dúvida.\n\nAtenciosamente,${eu?'\n'+eu:''}${casa?'\n'+casa:''}` : `\n\nQualquer dúvida, estou à disposição. Tenha ${tchau}!${eu?'\n'+eu:''}${casa?'\n'+casa:''}`;
   else if(email&&(eu||casa)) t+=`\n\nAtenciosamente,${eu?'\n'+eu:''}${casa?'\n'+casa:''}`;
   return t;
 }
